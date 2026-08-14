@@ -366,7 +366,7 @@ const SOURCES = [
   {
     id: 'remotive', name: 'Remotive',
     load: simple(
-      ctx => 'https://remotive.com/api/remote-jobs?limit=100' + (ctx.query ? '&search=' + encodeURIComponent(ctx.query) : ''),
+      ctx => 'https://remotive.com/api/remote-jobs?limit=100' + (ctx.apiQuery ? '&search=' + encodeURIComponent(ctx.apiQuery) : ''),
       d => (d.jobs || []).map(j => job({
         title: j.title, company: j.company_name, location: j.candidate_required_location || 'Remote',
         url: j.url, description: j.description, tags: j.tags, source: 'Remotive', remote: true,
@@ -397,7 +397,7 @@ const SOURCES = [
   {
     id: 'jobicy', name: 'Jobicy',
     load: simple(
-      ctx => 'https://jobicy.com/api/v2/remote-jobs?count=50' + (ctx.query ? '&tag=' + encodeURIComponent(ctx.query) : ''),
+      ctx => 'https://jobicy.com/api/v2/remote-jobs?count=50' + (ctx.apiQuery ? '&tag=' + encodeURIComponent(ctx.apiQuery) : ''),
       d => (d.jobs || []).map(j => job({
         title: j.jobTitle, company: j.companyName, location: j.jobGeo || 'Remote',
         url: j.url, description: j.jobExcerpt || j.jobDescription,
@@ -574,7 +574,10 @@ async function runSearch(){
   const keywords = resumeText.trim() ? extractKeywords(resumeText, 20) : keywordsFromQuery(typedQuery);
 
   const kwPreview = document.getElementById('kwPreview');
-  kwPreview.innerHTML = '<span class="kw-label">Matching on:</span>';
+  const corrected = typedQuery && normalizeQuery(typedQuery) !== typedQuery.toLowerCase();
+  kwPreview.innerHTML = corrected
+    ? `<span class="kw-label">Read as “${esc(normalizeQuery(typedQuery))}” · matching on:</span>`
+    : '<span class="kw-label">Matching on:</span>';
   keywords.slice(0, 14).forEach(([term]) => {
     const el = document.createElement('span');
     el.className = 'tag';
@@ -583,8 +586,14 @@ async function runSearch(){
   });
   kwPreview.classList.add('show');
 
+  const roleQuery = normalizeQuery(typedQuery || guessTopRole(keywords, resumeText));
+  const core = coreTerms(roleQuery);
   const ctx = {
-    query: typedQuery || guessTopRole(keywords, resumeText),
+    query: roleQuery,
+    // Boards match their `search`/`tag` params literally, so asking for the
+    // whole phrase returns near-nothing. Send the defining words and let the
+    // local scoring handle precision — that is what widens the candidate pool.
+    apiQuery: core.join(' '),
     location: document.getElementById('location').value.trim(),
     remoteOnly: document.getElementById('remoteOnly').checked
   };
@@ -633,7 +642,6 @@ async function runSearch(){
     const strongTerms = keywords.slice(0, 10).map(k => k[0]);
     const q = (ctx.query || '').toLowerCase();
     const resumeMode = !!resumeText.trim();
-    const multiWord = /\s/.test(q);
     scored = scored.filter(j => {
       const surface = (j.title + ' ' + j.tags.join(' ')).toLowerCase();
       if(q && termRegex(q).test(surface)) return true;   // exact role in the title

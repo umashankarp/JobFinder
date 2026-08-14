@@ -35,7 +35,14 @@ protection also 522s public proxies), **WorkingNomads** (no CORS header), **Land
 ## How matching works
 
 - **Keyword mode** — type a role. The full phrase gets the highest weight, individual
-  words less.
+  words less. Two things happen to the query first:
+  - **Common misspellings and shorthand are corrected** — `principle` → `principal`,
+    `sr` → `senior`, `enginner` → `engineer`, `dev` → `developer`. When a correction
+    fires, the page shows *Read as "…"* above the keyword tags so it's never silent.
+  - **Seniority words score but never gate.** `principal`, `senior`, `staff`, `lead`,
+    `junior`, `intern` and friends are qualifiers, not the role. "Principal Engineer"
+    therefore reaches *every* engineer posting and ranks the principals at the top,
+    rather than discarding 400 postings that don't literally say "principal".
 - **Resume mode** — paste a resume. It extracts up to 20 weighted keywords (known skill
   phrases, repeated bigrams, then single terms minus stopwords) and infers a role title
   from the header lines. The resume text stays in the browser; only the short role
@@ -59,9 +66,16 @@ match," not "perfect."**
   time order, so each day is ranked by match quality internally, and sources are
   round-robined among equal scores so one high-volume board can't own the page.
 
-"Only show postings that match my keywords" is a precision filter: a multi-word query
-needs two of its terms in the title/tags, and body-only matches need real overlap. Untick
-it to see everything the boards returned.
+"Only show postings that match my keywords" is a precision filter: every *defining* word
+of the query (seniority excluded) must appear in the title or tags, and body-only matches
+need real overlap. So "product designer" requires "designer" and won't surface a
+compliance role that merely carries a "Product" tag. Untick it to see everything the
+boards returned.
+
+Note that the boards match their `search`/`tag` parameters literally, so the page sends
+them the defining words only — asking Remotive for the whole phrase "principal engineer"
+returns almost nothing. Precision is applied locally instead, which is what keeps the
+candidate pool large.
 
 Within a single day the posting order across boards is arbitrary, so results are
 round-robined by source inside each day — still newest-first, but one high-volume board
