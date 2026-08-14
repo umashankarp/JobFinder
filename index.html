@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Finder — Latest Postings From Open Job Boards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F7F4EC; --paper-dim:#EFEBDF; --ink:#1D1B16; --ink-soft:#5A564C;
+    --yellow:#F5C518; --coral:#D64933; --slate:#3D5A73; --sage:#6B7A00; --line:#D9D3C2;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif;}
+  @media (prefers-reduced-motion: reduce){ *{animation-duration:0.01ms !important; transition-duration:0.01ms !important;} }
+  .wrap{max-width:1100px; margin:0 auto; padding:48px 24px 96px;}
+
+  .eyebrow{font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:var(--slate); display:flex; align-items:center; gap:8px; margin-bottom:14px;}
+  .eyebrow::before{content:''; width:7px; height:7px; background:var(--yellow); display:inline-block; box-shadow:1px 1px 0 var(--ink);}
+  h1{font-family:'Fraunces',serif; font-weight:600; font-size:clamp(30px,5vw,48px); line-height:1.06; margin:0 0 12px; letter-spacing:-0.01em;}
+  h1 em{font-style:italic; font-weight:400; background:linear-gradient(180deg, transparent 62%, var(--yellow) 62%);}
+  .sub{font-size:16px; color:var(--ink-soft); max-width:62ch; line-height:1.55; margin-bottom:8px;}
+  .note{font-size:13px; color:var(--ink-soft); max-width:66ch; line-height:1.55; margin-bottom:14px;}
+  .note strong{color:var(--ink);}
+
+  .banner{display:none; font-size:13px; line-height:1.55; background:#FFF8DC; border:1px solid #DCAE0F; border-left-width:4px; padding:12px 14px; margin-bottom:26px; max-width:70ch;}
+  .banner.show{display:block;}
+  .banner code{font-family:'IBM Plex Mono',monospace; font-size:12px; background:var(--paper-dim); padding:1px 5px; border:1px solid var(--line);}
+
+  .doc{background:#fff; border:1px solid var(--line); box-shadow:0 1px 0 var(--line), 0 14px 30px -20px rgba(29,27,22,0.35); margin-bottom:20px;}
+  .doc-head{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; border-bottom:1px solid var(--line); background:var(--paper-dim);}
+  .doc-label{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-soft);}
+  .doc-count{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft);}
+  textarea{width:100%; border:none; resize:vertical; padding:18px; font-family:'IBM Plex Mono',monospace; font-size:13px; line-height:1.6; color:var(--ink); background:transparent; outline:none; min-height:170px; display:block;}
+  textarea::placeholder{color:#B7B0A0;}
+  textarea:focus{background:#FFFDF7;}
+
+  .filters{display:grid; grid-template-columns:1.25fr 1fr 0.85fr 0.85fr; gap:14px; padding:18px; align-items:end; border-top:1px solid var(--line);}
+  @media (max-width:860px){ .filters{grid-template-columns:1fr 1fr;} }
+  @media (max-width:560px){ .filters{grid-template-columns:1fr;} }
+  .field label, .field .lbl{display:block; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:6px;}
+  .field input[type=text], .field select{width:100%; border:1px solid var(--line); padding:10px 12px; font-family:'Inter',sans-serif; font-size:14px; background:var(--paper-dim); color:var(--ink); outline:none; border-radius:0; height:41px;}
+  .field input[type=text]:focus, .field select:focus{border-color:var(--slate);}
+  .toggles{display:flex; flex-wrap:wrap; gap:18px; padding:0 18px 18px;}
+  .checkline{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-soft);}
+  .checkline label{cursor:pointer;}
+  .checkline input{accent-color:var(--slate); width:15px; height:15px;}
+
+  .actions{display:flex; align-items:center; gap:16px; margin-bottom:12px; flex-wrap:wrap;}
+  button.run{font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; background:var(--ink); color:var(--paper); border:1px solid var(--ink); padding:13px 26px; cursor:pointer; transition:background 0.15s ease, transform 0.15s ease;}
+  button.run:hover{background:var(--slate); border-color:var(--slate);}
+  button.run:active{transform:translateY(1px);}
+  button.run:disabled{opacity:0.45; cursor:not-allowed;}
+  button.run:focus-visible{outline:2px solid var(--slate); outline-offset:3px;}
+  button.ghost{font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:0.05em; text-transform:uppercase; background:transparent; color:var(--ink-soft); border:1px solid var(--line); padding:12px 16px; cursor:pointer;}
+  button.ghost:hover{border-color:var(--slate); color:var(--slate);}
+  .hint{font-size:13px; color:var(--ink-soft); flex:1; min-width:220px;}
+
+  .kw-preview{display:none; flex-wrap:wrap; gap:8px; margin-bottom:32px; align-items:center;}
+  .kw-preview.show{display:flex;}
+  .kw-preview .kw-label{font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-soft); margin-right:2px;}
+  .tag{font-family:'IBM Plex Mono',monospace; font-size:12px; padding:5px 10px; border:1px solid var(--line); background:var(--paper-dim); color:var(--ink-soft);}
+
+  .section-title{font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-soft); margin:0 0 16px; display:flex; align-items:center; gap:10px;}
+  .section-title::after{content:''; flex:1; height:1px; background:var(--line);}
+
+  .status-row{display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px;}
+  .status-chip{font-family:'IBM Plex Mono',monospace; font-size:11.5px; padding:6px 11px; border:1px solid var(--line); display:flex; align-items:center; gap:7px; background:#fff;}
+  .status-chip .dot{width:7px; height:7px; border-radius:50%; background:#B7B0A0; flex:none;}
+  .status-chip.ok .dot{background:var(--sage);}
+  .status-chip.err .dot{background:var(--coral);}
+  .status-chip.err{color:var(--ink-soft);}
+  .status-chip.pending .dot{background:var(--yellow); animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:0.25;}}
+  .tally{font-size:13px; color:var(--ink-soft); margin-bottom:26px;}
+
+  .results-list{display:flex; flex-direction:column; gap:0; margin-bottom:48px;}
+  .job-row{display:grid; grid-template-columns:64px 1fr auto; gap:18px; align-items:start; padding:20px 4px; border-bottom:1px solid var(--line);}
+  .job-row:first-child{border-top:1px solid var(--line);}
+  @media (max-width:640px){ .job-row{grid-template-columns:44px 1fr;} .job-row .go{grid-column:1/-1; padding-left:62px;} }
+  .job-score{font-family:'Fraunces',serif; font-weight:600; font-size:26px; color:var(--ink); text-align:center; line-height:1;}
+  .job-score.low{color:#A9A192;}
+  .job-score .pct{font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--ink-soft); display:block; margin-top:3px; letter-spacing:0.06em;}
+  .job-main h3{font-family:'Fraunces',serif; font-weight:600; font-size:18px; margin:0 0 4px; line-height:1.3;}
+  .job-meta{font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink-soft); margin-bottom:8px; line-height:1.5;}
+  .job-meta .src{color:var(--slate); text-transform:uppercase; letter-spacing:0.05em;}
+  .job-meta .fresh{color:var(--sage); font-weight:500;}
+  .job-tags{display:flex; flex-wrap:wrap; gap:6px;}
+  .job-tags .mini{font-size:11px; font-family:'IBM Plex Mono',monospace; padding:3px 8px; background:var(--paper-dim); border:1px solid var(--line); color:var(--ink-soft);}
+  .job-tags .mini.hit{background:var(--yellow); border-color:#DCAE0F; color:var(--ink);}
+  .go{align-self:center;}
+  .go a{font-family:'IBM Plex Mono',monospace; font-size:12px; text-transform:uppercase; letter-spacing:0.05em; color:var(--slate); text-decoration:none; border:1px solid var(--slate); padding:9px 16px; display:inline-block; white-space:nowrap;}
+  .go a:hover{background:var(--slate); color:#fff;}
+  .empty-note{font-size:14px; color:var(--ink-soft); line-height:1.6; padding:22px; border:1px dashed var(--line); background:#fff;}
+
+  .portal-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:12px; margin-bottom:20px;}
+  .portal-card{background:#fff; border:1px solid var(--line); padding:16px 18px; display:flex; flex-direction:column; gap:8px; text-decoration:none; color:var(--ink); transition:border-color 0.15s ease, transform 0.15s ease;}
+  .portal-card:hover{border-color:var(--slate); transform:translateY(-2px);}
+  .portal-card .pname{font-family:'Fraunces',serif; font-weight:600; font-size:16px;}
+  .portal-card .pgo{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--slate); letter-spacing:0.05em; text-transform:uppercase;}
+
+  footer{margin-top:40px; padding-top:20px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-soft); font-family:'IBM Plex Mono',monospace; line-height:1.7;}
+  footer a{color:var(--slate);}
+  .sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Live job search · runs entirely in your browser</div>
+  <h1>The latest jobs, <em>pulled from every open board at once</em></h1>
+  <p class="sub">Type a role, or paste your resume and let it pull the keywords out for you. It queries five open job-board APIs at the same time, merges and de-duplicates the results, scores every posting against your keywords, and puts the strongest matches first — inside whatever freshness window you pick. Plus one-click search links for LinkedIn, Indeed, Naukri and the rest.</p>
+  <p class="note"><strong>Why aren't LinkedIn and Indeed results listed inline?</strong> Those sites forbid automated scraping in their terms of service. So this pulls live postings from boards that publish an open API (Remotive, Arbeitnow, RemoteOK, Jobicy, The Muse) and hands you a pre-filled search URL for everything else — one click, no scraping. Your resume text never leaves the browser; only the short role keyword is ever sent to a job board.</p>
+
+  <div class="banner" id="fileBanner">
+    <strong>A source failed and you're running from disk.</strong> Some job boards refuse requests from <code>file://</code> pages. Double-click <code>serve.cmd</code> in this folder and use <code>http://localhost:8000</code> instead — that fixes it. The fallback-proxy toggle above is the other workaround.
+  </div>
+
+  <div class="doc">
+    <div class="doc-head">
+      <span class="doc-label">Your Resume (optional — improves match scores)</span>
+      <span class="doc-count" id="count-resume">0 words</span>
+    </div>
+    <textarea id="resume" placeholder="Paste your resume text here, or skip this and just type a role below..."></textarea>
+    <div class="filters">
+      <div class="field">
+        <label for="roleQuery">Keyword / role to search</label>
+        <input type="text" id="roleQuery" placeholder="e.g. product designer" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="location">Location</label>
+        <input type="text" id="location" placeholder="e.g. Austin, TX — blank = anywhere" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="postedWithin">Posted within</label>
+        <select id="postedWithin">
+          <option value="0">Any time</option>
+          <option value="1">Last 24 hours</option>
+          <option value="7" selected>Last 7 days</option>
+          <option value="30">Last 30 days</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="sortBy">Sort by</label>
+        <select id="sortBy">
+          <option value="match" selected>Best match</option>
+          <option value="blend">Best match, aged down</option>
+          <option value="newest">Newest first</option>
+        </select>
+      </div>
+    </div>
+    <div class="toggles">
+      <span class="checkline"><input type="checkbox" id="remoteOnly"><label for="remoteOnly">Remote only</label></span>
+      <span class="checkline"><input type="checkbox" id="strictMatch" checked><label for="strictMatch">Only show postings that match my keywords</label></span>
+      <span class="checkline"><input type="checkbox" id="useProxy" checked><label for="useProxy">Retry blocked sources through a public CORS proxy</label></span>
+      <span class="checkline"><input type="checkbox" id="saveResume" checked><label for="saveResume">Remember my resume on this device</label></span>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="run" id="runBtn">Find jobs</button>
+    <button class="ghost" id="clearBtn">Reset</button>
+    <span class="hint" id="hintText">Uses your resume if pasted, otherwise searches on the keyword alone.</span>
+  </div>
+
+  <div class="kw-preview" id="kwPreview"></div>
+
+  <div id="statusArea" aria-live="polite"></div>
+
+  <div id="liveResultsSection" style="display:none;">
+    <p class="section-title" id="resultsTitle">Live postings, newest first</p>
+    <div class="results-list" id="jobResults"></div>
+  </div>
+
+  <div id="portalSection" style="display:none;">
+    <p class="section-title">Search the rest yourself, one click each</p>
+    <div class="portal-grid" id="portalGrid"></div>
+  </div>
+
+  <footer>
+    Live sources: Remotive · Arbeitnow · RemoteOK · Jobicy · The Muse — all public, key-free APIs.<br>
+    The first four are remote-heavy and date-sorted. The Muse carries on-site roles but publishes no date-sorted feed, so its
+    postings are sampled from the newest pages and then cut down by your "posted within" setting — widen that filter to see more of them.<br>
+    A source marked "unavailable" means that provider didn't respond or blocked the request; the others still return results.
+  </footer>
+</div>
+
+<script>
+/* ------------------------------------------------------------------ *
+ * Keyword extraction — everything here is local to the browser.
+ * ------------------------------------------------------------------ */
+const STOPWORDS = new Set(("a an the and or but if of to in on for with at by from as is are was were be been being this that these those it its your you we our their they he she his her i "+
+"will shall would could should can may might must not no yes do does did done have has had having then than so such very more most other into out up down over under again further "+
+"about above below between during before after while all any each few own same too also just only now who whom which what when where why how etc per via using use used "+
+"experience experienced role responsibilities requirements required preferred plus years year including include includes ability strong excellent proven demonstrated across teams team "+
+"work working job company looking seeking candidate candidates opportunity opportunities apply application new join help ensure ensuring day within resume email phone address "+
+"present current university college school degree bachelor master gpa references available request "+
+// Resume action verbs: high frequency, zero discriminating power. Past-tense
+// only — "developer"/"design" stay, they are real titles and skills.
+"built designed led managed developed created partnered migrated implemented delivered maintained improved increased reduced spearheaded leveraged utilized collaborated "+
+"coordinated conducted performed oversaw launched executed streamlined assisted achieved established drove operated supported provided owned handled").split(/\s+/));
+
+const SKILL_PHRASES = [
+  "project management","product management","people management","stakeholder management","risk management","change management","supply chain","data analysis","data science",
+  "machine learning","deep learning","artificial intelligence","natural language processing","computer vision","data engineering","data pipeline","data visualization",
+  "business intelligence","cloud computing","software development","software engineering","full stack","front end","back end","web development","mobile development",
+  "quality assurance","continuous integration","continuous deployment","version control","agile methodology","scrum master","cross functional","go to market",
+  "customer success","customer service","customer experience","account management","sales pipeline","lead generation","market research","financial modeling",
+  "financial analysis","budget management","strategic planning","process improvement","root cause analysis","user research","user experience","user interface",
+  "graphic design","content creation","content strategy","social media","search engine optimization","paid media","email marketing","public relations",
+  "human resources","talent acquisition","performance management","conflict resolution","team leadership","time management","problem solving","critical thinking",
+  "communication skills","presentation skills","negotiation skills","attention to detail","technical writing","api development","rest api","microservices",
+  "distributed systems","system design","object oriented","test driven development","unit testing","code review","database design","data warehousing"
+];
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ENTITIES = { '&nbsp;': ' ', '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&apos;': "'", '&hellip;': '…', '&ndash;': '–', '&mdash;': '—' };
+/* Feeds arrive as HTML with pre-encoded entities; decode once here so titles
+   read as text, then esc() re-encodes at render time. */
+const stripHtml = s => String(s || '')
+  .replace(/<[^>]+>/g, ' ')
+  .replace(/&(?:nbsp|amp|lt|gt|quot|#39|apos|hellip|ndash|mdash);/g, m => ENTITIES[m])
+  .replace(/\s+/g, ' ').trim();
+const rxEsc = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const wordCount = t => (t.trim().match(/\S+/g) || []).length;
+const tokenize = t => (t.toLowerCase().match(/[a-z][a-z0-9+.#]*/g) || []);
+
+/* \b fails on terms ending in + or # (c++, c#), so use explicit boundaries. */
+function termRegex(term){
+  return new RegExp('(?:^|[^a-z0-9+#.])' + rxEsc(term.toLowerCase()) + '(?![a-z0-9])', 'i');
+}
+
+function extractKeywords(text, cap){
+  const lower = text.toLowerCase();
+  const freq = new Map();
+
+  SKILL_PHRASES.forEach(phrase => {
+    const matches = lower.match(new RegExp('\\b' + rxEsc(phrase) + '\\b', 'g'));
+    if(matches) freq.set(phrase, (freq.get(phrase) || 0) + matches.length * 3);
+  });
+
+  const tokens = tokenize(text);
+  const bigrams = new Map();
+  for(let i = 0; i < tokens.length; i++){
+    const t = tokens[i];
+    if(!STOPWORDS.has(t) && t.length > 2) freq.set(t, (freq.get(t) || 0) + 1);
+    if(i < tokens.length - 1){
+      const a = tokens[i], b = tokens[i+1];
+      if(!STOPWORDS.has(a) && !STOPWORDS.has(b) && a.length > 2 && b.length > 2){
+        const bg = a + ' ' + b;
+        bigrams.set(bg, (bigrams.get(bg) || 0) + 1);
+      }
+    }
+  }
+  bigrams.forEach((count, bg) => { if(count >= 2 && !freq.has(bg)) freq.set(bg, count * 2); });
+
+  // Drop single words that are already covered by a surviving phrase.
+  const phraseWords = new Set();
+  freq.forEach((_, k) => { if(k.includes(' ')) k.split(' ').forEach(w => phraseWords.add(w)); });
+
+  return Array.from(freq.entries())
+    .filter(([k]) => !(phraseWords.has(k) && !k.includes(' ')))
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, cap || 20);
+}
+
+/* Typos and shorthand that would otherwise miss every real posting. */
+const SPELLING_FIXES = {
+  principle: 'principal', principal: 'principal', pricipal: 'principal',
+  enginner: 'engineer', enginer: 'engineer', engineeer: 'engineer', engineer: 'engineer',
+  desginer: 'designer', desiner: 'designer', maneger: 'manager', mananger: 'manager',
+  analist: 'analyst', acountant: 'accountant', markting: 'marketing',
+  sr: 'senior', jr: 'junior', dev: 'developer', mgr: 'manager', admin: 'administrator'
+};
+
+/* Seniority is a qualifier, not the role. "Principal Engineer" must still match
+   "Principal Cloud Application Engineer" AND rank above a plain "Engineer" —
+   so these words score, but they never gate a result out. */
+const SENIORITY = new Set(['senior', 'junior', 'principal', 'staff', 'lead', 'entry', 'mid',
+  'level', 'intern', 'trainee', 'graduate', 'experienced', 'i', 'ii', 'iii', 'iv']);
+
+const normalizeQuery = q => q.toLowerCase().trim().split(/\s+/).map(w => SPELLING_FIXES[w] || w).join(' ');
+
+/* The words that actually define the role, with seniority stripped off. Falls
+   back to the full set when a query is nothing but qualifiers ("senior"). */
+function coreTerms(query){
+  const words = normalizeQuery(query).split(/\s+/).filter(w => w.length > 1 && !STOPWORDS.has(w));
+  const core = words.filter(w => !SENIORITY.has(w));
+  return core.length ? core : words;
+}
+
+function keywordsFromQuery(query){
+  const q = normalizeQuery(query);
+  const words = q.split(/\s+/).filter(w => w.length > 1 && !STOPWORDS.has(w));
+  const kws = [];
+  if(words.length > 1) kws.push([q, 6]);              // the exact phrase wins outright
+  words.forEach(w => kws.push([w, SENIORITY.has(w) ? 1 : 3]));
+  return kws.length ? kws : [[q, 6]];
+}
+
+const TITLE_WORDS = ["engineer","manager","designer","analyst","scientist","developer","consultant","specialist","director","coordinator","strategist","architect","recruiter","marketer","accountant","writer","researcher","administrator","technician","associate","executive","nurse","teacher"];
+function guessTopRole(keywords, resumeText){
+  const head = resumeText.split('\n').slice(0, 8).join(' ').toLowerCase();
+  for(const tw of TITLE_WORDS){
+    if(head.includes(tw)){
+      const m = head.match(new RegExp('([a-z]+\\s+)?' + tw, 'i'));
+      if(m) return m[0].trim();
+    }
+  }
+  const phrase = keywords.find(k => k[0].includes(' '));
+  return phrase ? phrase[0] : (keywords.length ? keywords[0][0] : '');
+}
+
+/* ------------------------------------------------------------------ *
+ * Fetch layer
+ * ------------------------------------------------------------------ */
+const PROXY = 'https://api.allorigins.win/raw?url=';
+const proxyEnabled = () => document.getElementById('useProxy').checked;
+
+async function getJSON(url, timeoutMs){
+  const attempt = async (target) => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs || 15000);
+    try {
+      const res = await fetch(target, { signal: ctrl.signal, mode: 'cors', credentials: 'omit' });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+  try {
+    return await attempt(url);
+  } catch(err){
+    if(!proxyEnabled()) throw err;
+    return await attempt(PROXY + encodeURIComponent(url));
+  }
+}
+
+const toDate = v => {
+  if(v == null || v === '') return null;
+  if(typeof v === 'number' || /^\d{9,13}$/.test(String(v))){
+    const n = Number(v);
+    const d = new Date(n < 1e12 ? n * 1000 : n);
+    return isNaN(d) ? null : d;
+  }
+  // "2026-08-01 09:30:00" is not reliably parsed everywhere; make it ISO-ish.
+  const d = new Date(String(v).trim().replace(' ', 'T'));
+  return isNaN(d) ? null : d;
+};
+
+const job = o => ({
+  title: stripHtml(o.title), company: stripHtml(o.company) || 'Unknown company',
+  location: stripHtml(o.location), url: /^https?:\/\//i.test(o.url || '') ? o.url : '',
+  description: stripHtml(o.description).slice(0, 4000), tags: (o.tags || []).filter(Boolean).map(stripHtml).slice(0, 8),
+  source: o.source, remote: !!o.remote, posted: o.posted || null
+});
+
+/* Each source is independent, failure-isolated and key-free, and exposes
+   load(ctx) -> [job]. `simple` covers the one-request case. */
+const simple = (urlFn, mapFn) => async ctx => mapFn(await getJSON(urlFn(ctx)));
+
+const SOURCES = [
+  {
+    id: 'remotive', name: 'Remotive',
+    load: simple(
+      ctx => 'https://remotive.com/api/remote-jobs?limit=100' + (ctx.query ? '&search=' + encodeURIComponent(ctx.query) : ''),
+      d => (d.jobs || []).map(j => job({
+        title: j.title, company: j.company_name, location: j.candidate_required_location || 'Remote',
+        url: j.url, description: j.description, tags: j.tags, source: 'Remotive', remote: true,
+        posted: toDate(j.publication_date)
+      })))
+  },
+  {
+    id: 'arbeitnow', name: 'Arbeitnow',
+    load: simple(
+      () => 'https://www.arbeitnow.com/api/job-board-api',
+      d => (d.data || []).map(j => job({
+        title: j.title, company: j.company_name, location: j.location || (j.remote ? 'Remote' : ''),
+        url: j.url, description: j.description, tags: [].concat(j.tags || [], j.job_types || []),
+        source: 'Arbeitnow', remote: !!j.remote, posted: toDate(j.created_at)
+      })))
+  },
+  {
+    id: 'remoteok', name: 'RemoteOK',
+    load: simple(
+      () => 'https://remoteok.com/api',
+      // Element 0 of this feed is a legal notice, not a job — it has no id.
+      d => (Array.isArray(d) ? d : []).filter(j => j && j.id && (j.position || j.title)).map(j => job({
+        title: j.position || j.title, company: j.company, location: j.location || 'Remote',
+        url: j.url || ('https://remoteok.com/remote-jobs/' + j.id), description: j.description,
+        tags: j.tags, source: 'RemoteOK', remote: true, posted: toDate(j.epoch || j.date)
+      })))
+  },
+  {
+    id: 'jobicy', name: 'Jobicy',
+    load: simple(
+      ctx => 'https://jobicy.com/api/v2/remote-jobs?count=50' + (ctx.query ? '&tag=' + encodeURIComponent(ctx.query) : ''),
+      d => (d.jobs || []).map(j => job({
+        title: j.jobTitle, company: j.companyName, location: j.jobGeo || 'Remote',
+        url: j.url, description: j.jobExcerpt || j.jobDescription,
+        tags: [].concat(j.jobIndustry || [], j.jobType || [], j.jobLevel ? [j.jobLevel] : []),
+        source: 'Jobicy', remote: true, posted: toDate(j.pubDate)
+      })))
+  },
+  {
+    // The Muse is the only source here carrying on-site/local roles, but it
+    // publishes no date-sorted feed — so pull a few pages and let the
+    // "posted within" filter decide what counts as recent.
+    id: 'themuse', name: 'The Muse',
+    load: async ctx => {
+      const base = 'https://www.themuse.com/api/public/jobs?descending=true'
+        + (ctx.remoteOnly ? '&location=' + encodeURIComponent('Flexible / Remote')
+          : (ctx.location ? '&location=' + encodeURIComponent(ctx.location) : ''));
+      const pages = await Promise.allSettled([1, 2, 3].map(p => getJSON(base + '&page=' + p)));
+      const ok = pages.filter(p => p.status === 'fulfilled');
+      if(!ok.length) throw new Error('all pages failed');
+      return ok.flatMap(p => (p.value.results || []).map(j => {
+        const locs = (j.locations || []).map(l => l.name).join(' · ');
+        return job({
+          title: j.name, company: (j.company || {}).name, location: locs,
+          url: (j.refs || {}).landing_page, description: j.contents,
+          tags: (j.categories || []).map(c => c.name).concat((j.levels || []).map(l => l.name)),
+          source: 'The Muse', remote: /remote|flexible/i.test(locs), posted: toDate(j.publication_date)
+        });
+      }));
+    }
+  }
+];
+
+/* ------------------------------------------------------------------ *
+ * Scoring, filtering, rendering
+ * ------------------------------------------------------------------ */
+function scoreJob(j, keywords){
+  const haystack = (j.title + ' ' + j.tags.join(' ') + ' ' + j.description).toLowerCase();
+  const titleHay = (j.title + ' ' + j.tags.join(' ')).toLowerCase();
+  let matched = 0, total = 0;
+  const hits = [], surfaceHits = [];
+  keywords.forEach(([term, weight]) => {
+    total += weight;
+    const re = termRegex(term);
+    if(re.test(haystack)){
+      // A hit in the title/tags is worth full weight; one buried in the body
+      // counts for less. 100 therefore means "every keyword is in the title".
+      const onSurface = re.test(titleHay);
+      matched += onSurface ? weight : weight * 0.6;
+      hits.push(term);
+      if(onSurface) surfaceHits.push(term);
+    }
+  });
+  return { score: total ? Math.round((matched / total) * 100) : 0, hits, surfaceHits };
+}
+
+function formatRelativeDate(d){
+  if(!d) return 'date unknown';
+  const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if(days <= 0) return 'today';
+  if(days === 1) return 'yesterday';
+  if(days < 30) return days + ' days ago';
+  const months = Math.floor(days / 30);
+  if(months < 12) return months + (months === 1 ? ' month ago' : ' months ago');
+  const years = Math.floor(months / 12);
+  return years + (years === 1 ? ' year ago' : ' years ago');
+}
+
+const ageInDays = j => j.posted ? Math.max(0, (Date.now() - j.posted.getTime()) / 86400000) : 21;
+
+/* Optional ordering for wide date windows: rank on match quality, then dock
+   ~1.6 points per day of age (capped at 30 days), so a strong match from
+   yesterday outranks a mediocre one from this morning. Not the default —
+   it can seat a 91 above a 100, which reads as broken even when it isn't.
+   With "posted within" already bounding recency, plain score order is
+   clearer: the match numbers just descend down the page. */
+function rankBlended(list){
+  return list
+    .map(j => ({ j, rank: j.score - Math.min(ageInDays(j), 30) * 1.6 }))
+    .sort((a, b) => b.rank - a.rank || ageInDays(a.j) - ageInDays(b.j))
+    .map(x => x.j);
+}
+
+/* Strict chronological mode. Postings on the same day carry no meaningful
+   cross-board time order, so rank each day by match quality, and round-robin
+   sources among equal scores so one high-volume board can't own the page. */
+function rankWithinDay(sorted){
+  const days = new Map();
+  sorted.forEach(j => {
+    const key = j.posted.toISOString().slice(0, 10);
+    if(!days.has(key)) days.set(key, []);
+    days.get(key).push(j);
+  });
+  const out = [];
+  days.forEach(list => {
+    const byScore = new Map();
+    list.forEach(j => {
+      if(!byScore.has(j.score)) byScore.set(j.score, new Map());
+      const bySrc = byScore.get(j.score);
+      if(!bySrc.has(j.source)) bySrc.set(j.source, []);
+      bySrc.get(j.source).push(j);
+    });
+    Array.from(byScore.keys()).sort((a, b) => b - a).forEach(s => {
+      const queues = Array.from(byScore.get(s).values());
+      let drained = false;
+      for(let i = 0; !drained; i++){
+        drained = true;
+        queues.forEach(q => { if(i < q.length){ out.push(q[i]); drained = false; } });
+      }
+    });
+  });
+  return out;
+}
+
+const normKey = s => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+function dedupe(jobs){
+  const seen = new Map();
+  jobs.forEach(j => {
+    const key = normKey(j.title) + '|' + normKey(j.company);
+    const prev = seen.get(key);
+    if(!prev || (j.posted && (!prev.posted || j.posted > prev.posted))) seen.set(key, j);
+  });
+  return Array.from(seen.values());
+}
+
+function buildPortalLinks(query, loc, remoteOnly){
+  const q = encodeURIComponent(query || '');
+  const l = encodeURIComponent(loc || '');
+  const slug = (query || 'jobs').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const locSlug = (loc || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return [
+    { name: 'LinkedIn',     url: `https://www.linkedin.com/jobs/search/?keywords=${q}&location=${l}&sortBy=DD${remoteOnly ? '&f_WT=2' : ''}` },
+    { name: 'Indeed',       url: `https://www.indeed.com/jobs?q=${q}&l=${l}&sort=date${remoteOnly ? '&sc=0kf%3Aattr(DSQF7)%3B' : ''}` },
+    { name: 'Glassdoor',    url: `https://www.glassdoor.com/Job/jobs.htm?sc.keyword=${q}&locT=C&locKeyword=${l}` },
+    { name: 'Google Jobs',  url: `https://www.google.com/search?q=${q}+jobs${loc ? '+in+' + l : ''}${remoteOnly ? '+remote' : ''}&ibp=htl;jobs` },
+    { name: 'Naukri',       url: `https://www.naukri.com/${slug}-jobs${locSlug ? '-in-' + locSlug : ''}` },
+    { name: 'Wellfound',    url: `https://wellfound.com/jobs?query=${q}` },
+    { name: 'ZipRecruiter', url: `https://www.ziprecruiter.com/candidate/search?search=${q}&location=${l}&days=7` },
+    { name: 'Monster',      url: `https://www.monster.com/jobs/search?q=${q}&where=${l}&recency=last_week` },
+    { name: 'Dice (tech)',  url: `https://www.dice.com/jobs?q=${q}&location=${l}&filters.postedDate=SEVEN` },
+    { name: 'We Work Remotely', url: `https://weworkremotely.com/remote-jobs/search?term=${q}` },
+    { name: 'SimplyHired',  url: `https://www.simplyhired.com/search?q=${q}&l=${l}&t=7` },
+    { name: 'Otta',         url: `https://app.otta.com/jobs?search=${q}` }
+  ];
+}
+
+function setStatus(id, state, msg){
+  const el = document.getElementById('status-' + id);
+  if(!el) return;
+  el.className = 'status-chip ' + state;
+  el.querySelector('.txt').textContent = msg;
+}
+
+/* ------------------------------------------------------------------ *
+ * Main
+ * ------------------------------------------------------------------ */
+let searching = false;
+
+async function runSearch(){
+  if(searching) return;
+
+  const resumeText = document.getElementById('resume').value;
+  const typedQuery = document.getElementById('roleQuery').value.trim();
+  const hint = document.getElementById('hintText');
+
+  if(!resumeText.trim() && !typedQuery){
+    hint.textContent = 'Enter a keyword/role above, or paste a resume, then try again.';
+    hint.style.color = 'var(--coral)';
+    document.getElementById('roleQuery').focus();
+    return;
+  }
+  hint.style.color = '';
+  hint.textContent = 'Querying all five boards in parallel…';
+
+  const keywords = resumeText.trim() ? extractKeywords(resumeText, 20) : keywordsFromQuery(typedQuery);
+
+  const kwPreview = document.getElementById('kwPreview');
+  kwPreview.innerHTML = '<span class="kw-label">Matching on:</span>';
+  keywords.slice(0, 14).forEach(([term]) => {
+    const el = document.createElement('span');
+    el.className = 'tag';
+    el.textContent = term;
+    kwPreview.appendChild(el);
+  });
+  kwPreview.classList.add('show');
+
+  const ctx = {
+    query: typedQuery || guessTopRole(keywords, resumeText),
+    location: document.getElementById('location').value.trim(),
+    remoteOnly: document.getElementById('remoteOnly').checked
+  };
+  const withinDays = Number(document.getElementById('postedWithin').value);
+  const sortBy = document.getElementById('sortBy').value;
+  const strict = document.getElementById('strictMatch').checked;
+
+  document.getElementById('statusArea').innerHTML = '<div class="status-row">' + SOURCES.map(s =>
+    `<span class="status-chip pending" id="status-${s.id}"><span class="dot"></span><span class="txt">${esc(s.name)}: searching…</span></span>`
+  ).join('') + '</div><p class="tally" id="tally">Fetching…</p>';
+
+  const jobResults = document.getElementById('jobResults');
+  jobResults.innerHTML = '';
+  document.getElementById('liveResultsSection').style.display = 'block';
+
+  searching = true;
+  document.getElementById('runBtn').disabled = true;
+
+  let all = [], failures = 0;
+  await Promise.all(SOURCES.map(async src => {
+    try {
+      const mapped = (await src.load(ctx)).filter(j => j.title && j.url);
+      all = all.concat(mapped);
+      setStatus(src.id, 'ok', `${src.name}: ${mapped.length} live`);
+    } catch(err){
+      failures++;
+      setStatus(src.id, 'err', `${src.name}: unavailable`);
+    }
+  }));
+
+  // Every board currently allows file:// origins, so only raise the localhost
+  // tip if one actually failed while running off disk.
+  if(failures && location.protocol === 'file:') document.getElementById('fileBanner').classList.add('show');
+
+  searching = false;
+  document.getElementById('runBtn').disabled = false;
+  hint.textContent = 'Uses your resume if pasted, otherwise searches on the keyword alone.';
+
+  const fetched = all.length;
+  all = dedupe(all);
+
+  // Score first — the relevance filter reuses the hit list.
+  let scored = all.map(j => Object.assign({}, j, scoreJob(j, keywords)));
+
+  if(strict && keywords.length){
+    const strongTerms = keywords.slice(0, 10).map(k => k[0]);
+    const q = (ctx.query || '').toLowerCase();
+    const resumeMode = !!resumeText.trim();
+    const multiWord = /\s/.test(q);
+    scored = scored.filter(j => {
+      const surface = (j.title + ' ' + j.tags.join(' ')).toLowerCase();
+      if(q && termRegex(q).test(surface)) return true;   // exact role in the title
+      if(resumeMode){
+        if(strongTerms.some(t => termRegex(t).test(surface))) return true;
+        // Body-only matches need real overlap: one stray mention of "software"
+        // in a marketing job's boilerplate is not a match.
+        return j.hits.length >= 3 && j.score >= 20;
+      }
+      // Every defining word must be in the title/tags — "product designer" needs
+      // "designer", not just a stray "product" tag on an AML compliance role.
+      // Seniority is excluded from this test, so "principal engineer" still
+      // reaches every engineer posting and simply ranks the principals first.
+      return core.every(t => termRegex(t).test(surface));
+    });
+  }
+  if(ctx.remoteOnly) scored = scored.filter(j => j.remote || /remote|anywhere|worldwide/i.test(j.location));
+  if(ctx.location && !ctx.remoteOnly){
+    const loc = ctx.location.toLowerCase().split(',')[0].trim();
+    scored = scored.filter(j => j.location.toLowerCase().includes(loc) || j.remote);
+  }
+  if(withinDays > 0){
+    const cutoff = Date.now() - withinDays * 86400000;
+    scored = scored.filter(j => j.posted && j.posted.getTime() >= cutoff);
+  }
+
+  if(sortBy === 'match'){
+    scored.sort((a, b) => b.score - a.score || ageInDays(a) - ageInDays(b));
+  } else if(sortBy === 'blend'){
+    scored = rankBlended(scored);
+  } else {
+    // Undated postings can't be ranked by recency, so they go last, best-match first.
+    const dated = scored.filter(j => j.posted).sort((a, b) => b.posted - a.posted);
+    const undated = scored.filter(j => !j.posted).sort((a, b) => b.score - a.score);
+    scored = rankWithinDay(dated).concat(undated);
+  }
+
+  /* A resume yields ~20 keywords and no posting ever names all of them, so a
+     raw percentage would rate every good match in the teens. Rescale against
+     the best result in this set — with a floor, so a weak set can't promote
+     its least-bad row to 100. */
+  const best = scored.reduce((m, j) => Math.max(m, j.score), 0);
+  const divisor = Math.max(best, 35);
+  scored.forEach(j => { j.display = Math.min(100, Math.round((j.score / divisor) * 100)); });
+
+  const shown = scored.slice(0, 40);
+  document.getElementById('resultsTitle').firstChild.textContent =
+    sortBy === 'match' ? 'Live postings, best match first '
+    : sortBy === 'newest' ? 'Live postings, newest first '
+    : 'Live postings, best match and freshest first ';
+  document.getElementById('tally').textContent =
+    `${fetched} postings fetched · ${all.length} unique · ${scored.length} match your filters · showing ${shown.length}.`;
+
+  if(!shown.length){
+    jobResults.innerHTML = '<p class="empty-note"><strong>No live matches for this search.</strong><br>'
+      + 'Try a broader role term, widen "posted within," untick "only show postings that match my keywords," '
+      + 'or clear the location — these open boards skew heavily toward remote and tech roles. '
+      + 'The direct search links below cover far more listings than any open API does.</p>';
+  } else {
+    const frag = document.createDocumentFragment();
+    shown.forEach(j => {
+      const row = document.createElement('div');
+      row.className = 'job-row';
+      const hitTags = j.hits.slice(0, 3).map(t => `<span class="mini hit">${esc(t)}</span>`).join('');
+      const restTags = j.tags.filter(t => !j.hits.includes(t.toLowerCase())).slice(0, 3)
+        .map(t => `<span class="mini">${esc(t)}</span>`).join('');
+      const age = formatRelativeDate(j.posted);
+      const fresh = j.posted && (Date.now() - j.posted.getTime()) < 2 * 86400000;
+      row.innerHTML =
+        `<div class="job-score${j.display < 40 ? ' low' : ''}">${j.display}<span class="pct">MATCH</span></div>
+         <div class="job-main">
+           <h3>${esc(j.title)}</h3>
+           <div class="job-meta"><span class="src">${esc(j.source)}</span> · ${esc(j.company)}`
+           + (j.location ? ' · ' + esc(j.location) : '')
+           + ` · <span class="${fresh ? 'fresh' : ''}">${esc(age)}</span></div>
+           <div class="job-tags">${hitTags}${restTags}</div>
+         </div>
+         <div class="go"><a href="${esc(j.url)}" target="_blank" rel="noopener noreferrer">View posting →</a></div>`;
+      frag.appendChild(row);
+    });
+    jobResults.appendChild(frag);
+  }
+
+  const portalGrid = document.getElementById('portalGrid');
+  portalGrid.innerHTML = '';
+  buildPortalLinks(ctx.query, ctx.location, ctx.remoteOnly).forEach(p => {
+    const a = document.createElement('a');
+    a.className = 'portal-card';
+    a.href = p.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    a.innerHTML = `<span class="pname">${esc(p.name)}</span><span class="pgo">Search this role →</span>`;
+    portalGrid.appendChild(a);
+  });
+  document.getElementById('portalSection').style.display = 'block';
+}
+
+/* ------------------------------------------------------------------ *
+ * Wiring
+ * ------------------------------------------------------------------ */
+const STORE = 'jobfinder.v1';
+const els = {
+  resume: document.getElementById('resume'), role: document.getElementById('roleQuery'),
+  loc: document.getElementById('location'), remote: document.getElementById('remoteOnly'),
+  within: document.getElementById('postedWithin'), sort: document.getElementById('sortBy'),
+  strict: document.getElementById('strictMatch'), proxy: document.getElementById('useProxy'),
+  save: document.getElementById('saveResume')
+};
+
+function persist(){
+  try {
+    localStorage.setItem(STORE, JSON.stringify({
+      resume: els.save.checked ? els.resume.value : '', role: els.role.value, loc: els.loc.value,
+      remote: els.remote.checked, within: els.within.value, sort: els.sort.value,
+      strict: els.strict.checked, proxy: els.proxy.checked, save: els.save.checked
+    }));
+  } catch(e){ /* private mode / quota — not worth interrupting the user */ }
+}
+
+function restore(){
+  let s;
+  try { s = JSON.parse(localStorage.getItem(STORE) || 'null'); } catch(e){ return; }
+  if(!s) return;
+  els.resume.value = s.resume || ''; els.role.value = s.role || ''; els.loc.value = s.loc || '';
+  els.remote.checked = !!s.remote; els.strict.checked = s.strict !== false;
+  els.proxy.checked = s.proxy !== false; els.save.checked = s.save !== false;
+  if(s.within != null) els.within.value = s.within;
+  if(s.sort) els.sort.value = s.sort;
+  document.getElementById('count-resume').textContent = wordCount(els.resume.value) + ' words';
+}
+
+els.resume.addEventListener('input', e => {
+  document.getElementById('count-resume').textContent = wordCount(e.target.value) + ' words';
+  persist();
+});
+[els.role, els.loc, els.remote, els.within, els.sort, els.strict, els.proxy, els.save]
+  .forEach(el => el.addEventListener('change', persist));
+
+document.getElementById('runBtn').addEventListener('click', runSearch);
+[els.role, els.loc].forEach(el => el.addEventListener('keydown', e => { if(e.key === 'Enter') runSearch(); }));
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  els.resume.value = ''; els.role.value = ''; els.loc.value = ''; els.remote.checked = false;
+  document.getElementById('count-resume').textContent = '0 words';
+  document.getElementById('kwPreview').classList.remove('show');
+  document.getElementById('statusArea').innerHTML = '';
+  document.getElementById('liveResultsSection').style.display = 'none';
+  document.getElementById('portalSection').style.display = 'none';
+  try { localStorage.removeItem(STORE); } catch(e){}
+  els.role.focus();
+});
+
+restore();
+</script>
+</body>
+</html>

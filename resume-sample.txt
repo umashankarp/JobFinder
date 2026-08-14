@@ -1,0 +1,21 @@
+Priya Raman
+Senior Data Engineer
+
+SUMMARY
+Data engineer with 7 years building batch and streaming data pipelines on AWS.
+Strong background in data warehousing, ETL orchestration and analytics enablement.
+
+EXPERIENCE
+Senior Data Engineer, Northwind Analytics (2021-present)
+- Designed and operated Airflow data pipelines processing 4TB/day into Snowflake.
+- Built a Kafka streaming ingestion layer with Python and Spark.
+- Led data quality tooling and unit testing standards; ran code review for the team.
+- Partnered with business intelligence analysts on dimensional data warehousing models.
+
+Data Engineer, Cobalt Retail (2018-2021)
+- Migrated legacy SQL ETL to dbt and Redshift; cut costs 40%.
+- Built data visualization dashboards in Looker for supply chain reporting.
+
+SKILLS
+Python, SQL, Spark, Kafka, Airflow, dbt, Snowflake, Redshift, AWS, Docker, Kubernetes,
+data modeling, data pipeline design, data warehousing, machine learning basics, Git
